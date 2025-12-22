@@ -1,0 +1,11 @@
+requests
+python-dotenv
+pymupdf
+langchain
+langchain-openai
+langchain-community
+faiss-cpu
+gradio
+rouge-score
+bert-score
+tiktoken
