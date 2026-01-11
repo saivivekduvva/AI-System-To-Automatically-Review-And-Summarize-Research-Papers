@@ -1,11 +1,46 @@
+# -----------------------------
+# Core Utilities
+# -----------------------------
 requests
 python-dotenv
+tqdm
+pydantic
+
+# -----------------------------
+# PDF Processing & Text Extraction
+# -----------------------------
 pymupdf
+pymupdf4llm
+
+# -----------------------------
+# NLP, LLM & Tokenization
+# -----------------------------
 langchain
-langchain-openai
 langchain-community
+langchain-openai
+langgraph
+langsmith
+tiktoken
+openai
+
+# -----------------------------
+# Vector Store & Embeddings
+# -----------------------------
 faiss-cpu
-gradio
+sentence-transformers
+
+# -----------------------------
+# Evaluation & Scoring
+# -----------------------------
 rouge-score
 bert-score
-tiktoken
+
+# -----------------------------
+# UI / Deployment
+# -----------------------------
+gradio
+
+# -----------------------------
+# Graph / Pipeline Architecture
+# -----------------------------
+grandalf
