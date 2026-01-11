@@ -1,0 +1,75 @@
+Related Work
+Understanding Social Bias of LMs
+Studies have
+been conducted to measure political biases and pre-
+dict the ideology of individual users (Colleoni et al.,
+2014; Makazhanov and Rafiei, 2013; Preo¸tiuc-
+Pietro et al., 2017), news articles (Li and Gold-
+wasser, 2019; Feng et al., 2021; Liu et al., 2022b;
+Zhang et al., 2022), and political entities (Anegundi
+et al., 2022; Feng et al., 2022). As extensive re-
+search has shown that machine learning models ex-
+hibit societal and political biases (Zhao et al., 2018;
+Blodgett et al., 2020b; Bender et al., 2021; Ghosh
+et al., 2021; Shaikh et al., 2022; Li et al., 2022;
+Cao et al., 2022; Goldfarb-Tarrant et al., 2021; Jin
+et al., 2021), there has been an increasing amount
+of research dedicated to measuring the inherent
+societal bias of these models using various compo-
+nents, such as word embeddings (Bolukbasi et al.,
+2016; Caliskan et al., 2017; Kurita et al., 2019),
+output probability (Borkan et al., 2019), and model
+performance discrepancy (Hardt et al., 2016).
+Recently, as generative models have become in-
+creasingly popular, several studies have proposed to
+probe political biases (Liu et al., 2021; Jiang et al.,
+2022b) and prudence (Bang et al., 2021) of these
+models. Liu et al. (2021) presented two metrics to
+quantify political bias in GPT2 using a political
+ideology classifier, which evaluate the probability
+difference of generated text with and without at-
+tributes (gender, location, and topic). Jiang et al.
+(2022b) showed that LMs trained on corpora writ-
+ten by active partisan members of a community
+can be used to examine the perspective of the com-
+munity and generate community-specific responses
+to elicit opinions about political entities. Our pro-
+posed method is distinct from existing methods as
+it can be applied to a wide range of LMs includ-
+ing encoder-based models, not just autoregressive
+models. Additionally, our approach for measuring
+political bias is informed by existing political sci-
+ence literature and widely-used standard tests.
+Impact of Model and Data Bias on Downstream
+Task Fairness
+Previous research has shown that
+the performance of models for downstream tasks
+can vary greatly among different identity groups
+(Hovy and Søgaard, 2015; Buolamwini and Gebru,
+2018; Dixon et al., 2018), highlighting the issue
+of fairness (Hutchinson and Mitchell, 2019; Liu
+et al., 2020). It is commonly believed that annota-
+tor (Geva et al., 2019; Sap et al., 2019; Davani et al.,
+2022; Sap et al., 2022) and data bias (Park et al.,
+2018; Dixon et al., 2018; Dodge et al., 2021; Harris
+et al., 2022) are the cause of this impact, and some
+studies have investigated the connection between
+training data and downstream task model behavior
+(Gonen and Webster, 2020; Li et al., 2020; Dodge
+et al., 2021). Our study adds to this by demonstrat-
+ing the effects of political bias in training data on
+downstream tasks, specifically in terms of fairness.
+Previous studies have primarily examined the con-
+nection between data bias and either model bias or
+downstream task performance, with the exception
+of Steed et al. (2022). Our study, however, takes
+a more thorough approach by linking data bias
+to model bias, and then to downstream task per-
+formance, in order to gain a more complete under-
+standing of the effect of social biases on the fairness
+of models for downstream tasks. Also, most prior
+work has primarily focused on investigating fair-
+ness in hate speech detection models, but our study
+highlights important fairness concerns in misinfor-
+mation detection that require further examination.
+7
