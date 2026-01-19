@@ -1,0 +1,888 @@
+Related Work
+Language instructions are a versatile way of defin-
+ing goals, which is why they have been studied
+in the context of a variety of applications, such
+as instructions in grounded environments (Shrid-
+har et al., 2020; Stepputtis et al., 2020; Min
+et al., 2022b; Weir et al., 2022) and database com-
+mands (Kim et al., 2020). Here, we focus on appli-
+cations of instructions for general NLP tasks.
+Recent literature has been motivated by building
+models that are generalizable across a variety of
+NLP tasks, when prompted with either a few ex-
+amples (Ye and Ren, 2021; Bragg et al., 2021) or
+language definitions (Efrat and Levy, 2020; Weller
+et al., 2020; Zhong et al., 2021; Mishra et al.,
+2022b,a; Parmar et al., 2022). Our work is re-
+lated to the existing benchmarks in this line of
+work, as delineated in Table 1 along various dimen-
+sions. Our benchmark extends NATINST (Mishra
+et al., 2022b) with 26× more tasks and greater va-
+riety of task types (Fig. 2). While CROSSFIT (Ye
+et al., 2021) focuses on benchmarking with a few
+in-context examples, our benchmark also offers
+task instructions.
+Concurrent to our work, PROMPTSOURCE
+(Bach et al., 2022) is another benchmark of tasks
+and their language instructions (prompts). An im-
+portant distinction between this benchmark and
+ours is the phrasing of the task definitions: while
+PROMPTSOURCE task definitions are relatively
+concise, our task definitions are collected with the
+intention of providing a complete definition of each
+task and therefore are longer (24 tokens vs. 56 to-
+kens on average; Table 1). More recently, BIG-
+BENCH (Srivastava et al., 2022) introduces a col-
+lection of 204 tasks and also provides short task
+descriptions and input prefixes that can be used for
+prompting LMs. With little overlap to our collec-
+tion of tasks, they focus more on finding challeng-
+ing tasks that can be used to test different behaviors
+of current LMs. Nevertheless, we believe that all
+these efforts in collecting different tasks as well as
+the task instructions are complementary, and the
+community will benefit from considering different
+benchmarks. Finally, the well-adopted InstructGPT
+model (Ouyang et al., 2022) is partially enabled
+by a large dataset of prompts that are collected via
+various synthetic data augmentation which, unfor-
+tunately, is not publicly available.
+Beyond cross-task generalization, our bench-
+mark can also be used to study multi-task learn-
+ing more broadly, which is a longstanding goal for
+AI (Caruana, 1997). Traditionally, this literature fo-
+cuses on setups that involve evaluation on tasks that
+are observed during training (Collobert and Weston,
+2008; Hashimoto et al., 2017). More recent studies
+show promise that large-scale multi-task learning
+can enable strong generalization to similar tasks via
+unified encoding (Khashabi et al., 2020; Xie et al.,
+2022) or better finetuning results on downstream
+tasks (McCann et al., 2018; Aribandi et al., 2022).
+Our proposed benchmark provides diverse tasks for
+studying multi-tasking at a massive scale.
+3
+SUPER-NATURALINSTRUCTIONS
+SUPER-NATURALINSTRUCTIONS
+is
+a
+meta-
+dataset (Triantafillou et al., 2019) consisting of a
+variety of NLP tasks (see Fig. 2a) and instructions
+that describe them in plain language.
+Instruction schema. All task instructions follow
+the same uniform schema (see Fig. 1) which is
+composed of the following parts:
+• DEFINITION defines a given task in natural lan-
+guage. This is a complete definition of how an
+input text (e.g., a sentence or a document) is ex-
+pected to be mapped to an output text.
+• POSITIVE EXAMPLES are samples of inputs and
+their correct outputs, along with a short explana-
+tion for each.
+5087
+• NEGATIVE EXAMPLES are samples of inputs
+and their incorrect/invalid outputs, along with
+a short explanation for each.
+The above schema is based on that of Mishra et al.
+(2022b), though it is simplified. See Appendix C
+for the comparison.
+Task instances. Given the instructions for each
+task, a model is expected to solve instances of that
+task. We use a unified format to organize the in-
+stances of all our tasks. More precisely, each in-
+stance consists of a textual input and a list of ac-
+ceptable textual outputs. We limit the number of
+instances in each task to 6.5K to avoid an imbal-
+ance of instances between tasks.
+Benchmark collection.
+The benchmark was
+collected through a large community effort on
+GitHub.3 Tasks were collected and contributed by
+NLP practitioners who were either responding to
+our public invitation4 or students who were encour-
+aged to contribute as part of their class project.5
+Contributors were encouraged to be creative and
+source the tasks from several resources: (a) exist-
+ing public NLP datasets, (b) available intermediate
+annotations in crowdsourcing experiments (e.g.,
+paraphrasing questions or rating their quality dur-
+ing crowdsourcing a QA dataset), or (c) synthetic
+tasks that can be communicated to an average hu-
+man in a few sentences (e.g., basic algebraic opera-
+tions like number comparison, finding the longest
+palindrome substring, etc.). When using existing
+datasets or crowdsourcing annotations, contribu-
+tors were encouraged to adopt the instructions used
+to create this dataset whenever available. This was
+done to ensure that the instructions were sufficient
+to define the tasks to average human readers. Tasks
+along with instructions and other meta information
+were contributed as JSON files via GitHub pull re-
+quests, which were reviewed by automated checks
+and peers. We had 88 contributors from diverse
+locations and backgrounds contribute to our reposi-
+tory.
+Quality control. Controlling the quality of this
+community-contributed data was done in several
+phases: (1) Upon creating a GitHub pull request
+of the proposed task, it immediately went through
+an automatic test. This process verified that the
+introduced file contained the expected fields and
+adhered to our desired properties (e.g., no duplicate
+3https://github.com/allenai/natural-instructions
+4https://blog.allenai.org/9d3f24d5a9db
+5CSE 576 “Topics in NLP” course, Arizona State Univ.
+instances, the output labels are not heavily imbal-
+anced, etc.) and (2) The proposed task was then
+peer-reviewed by 1–2 other expert contributors to
+ensure the clarity and sufficiency of instruction con-
+tent. The review process was done iteratively until
+the reviewers were content with the quality of the
+proposed instruction. Specifically, reviewers were
+asked to verify that the instruction is clear and suf-
+ficient for an average language speaker to solve the
+underlying task (evaluation instances) while being
+grammatical, fluent, and concise. On average, the
+review of each GitHub pull request took about 4–
+6 iterations over the span of multiple days before
+being merged. (3) Lastly, the added tasks were pre-
+sented to crowdworkers in order to collect feedback
+on the quality of the provided instructions, such as
+typos, clarity, or other issues (details in §A). Sub-
+sequently, one of the authors used this feedback to
+improve the task definitions of the instances. This
+feedback was done only for English tasks, as find-
+ing high-quality crowdworkers in other languages
+is nontrivial (Pavlick et al., 2014).
+Diversity of tasks.
+Collecting tasks for SUP-
+NATINST was carefully supervised to cover a wide
+variety of natural language understanding tasks, do-
+mains, and languages. To better understand this di-
+versity, we comprehensively categorize tasks along
+three different dimensions:
+• TASK TYPE defines the nature of the mapping
+from instance inputs to outputs (e.g., question
+answering, classification, etc.).
+• LANGUAGE indicates the language(s) of the in-
+stances.
+• DOMAIN indicates the domain(s) to which
+the text of the tasks belong to (e.g., politics,
+medicine, dialogue, etc.).
+These different measures of categorization can be
+used to study different senses of generalization. In
+our empirical studies (§5), we study generalization
+along the axis of task types. We refer the reader
+to Fig. 10 in the appendix for the distribution of
+tasks among different task types, languages, and
+domains.
+Statistics. Table 2 shows various statistics for the
+benchmark. In total, the dataset includes 1616 tasks
+and 5M instances. On average, each instruction is
+paired with 2.8 positive and 2.4 negative examples.
+The average definition length is 56.6 in words.
+5088
+statistic
+# of tasks
+1616
+# of task types
+76
+# of languages
+55
+# of domains
+33
+# of non-English tasks
+576
+avg. definition length (words per task)
+56.6
+avg. # of positive examples (per task)
+2.8
+avg. # of negative examples (per task)
+2.4
+avg. # of instances (per task)
+3106.0
+Table 2: Statistics of SUP-NATINST.
+4
+Tk-INSTRUCT: Learning to Follow
+Instructions at Scale
+Defining Generalization to Unseen Tasks. Each
+task t is defined via its natural language instruction
+It, and each task has a set of input/output instances
+(Xt, Yt). A model M is expected to produce the
+output y, given the input x and the task instruction
+It: M(It, x) = y, for (x, y) ∈(Xt, Yt). In partic-
+ular, we would like to evaluate model M on tasks
+that are not observed (i.e., their instances were not
+used for training M). The only source of signal
+for learning the task at inference time is in-context
+instructions It that contain a definition and demon-
+stration examples of the task.
+Tk-INSTRUCT. We introduce Tk-INSTRUCT, a
+model that is meta-trained on SUP-NATINST for
+solving tasks given their in-context instructions.
+Previous work has shown the effectiveness of such
+meta-training in improving model’s ability to do in-
+context learning with either prompts (Zhong et al.,
+2021; Sanh et al., 2022) or demonstration examples
+(Min et al., 2022a). Because of the large variety
+of tasks in SUP-NATINST, we are able to do this
+multi-task meta-training at a larger scale than be-
+fore. We conduct our experiments and analysis
+based on the T5 model (Raffel et al., 2020). Since
+each instruction It consists of multiple elements as
+described in our instruction schema (§3), we map
+these elements to textual format and append them
+before the input instance. Fig. 8 in the appendix
+shows how we encode the full instructions. We
+study different combinations of these instruction
+elements in §7.2. By default, we will use our most
+effective instruction elements (i.e., task definition
+and two positive examples) unless otherwise speci-
+fied. In the same manner, we train the multilingual
+variant mTk-INSTRUCT based on the mT5 model
+(Xue et al., 2021).
+5
+Benchmarking Cross-Task
+Generalization with SUP-NATINST
+Here we provide our recommended recipe for
+benchmarking generalization via SUP-NATINST.
+5.1
+Evaluation Setup
+An Evaluation Split of Unseen Tasks. We split
+the large collection of tasks in SUP-NATINST into
+two subsets: one for evaluation and the other for su-
+pervision. For evaluation tasks, we fix a manually-
+selected collection of 12 categories that represent
+154 tasks.
+The large variety of tasks in SUP-
+NATINST enables us to choose a diverse set of tasks
+for evaluation – such as those at word, sentence,
+and document levels, covering both classification
+and generation formats. Appendix G lists our eval-
+uation tasks with examples for representative tasks.
+For an efficient evaluation, we sample a maximum
+of 100 instances for each task, which results in
+15,310 testing instances in total. The remaining
+tasks are used for training models.6
+Divided Tracks for English and X-lignual Tasks.
+SUP-NATINST consists of tasks across multiple
+languages, which enables evaluating the model’s
+generalization to unseen tasks not only in English
+but also in other languages. Therefore, we divide
+our evaluation tasks into two tracks: one for En-
+glish cross-task generalization (119 tasks) and the
+other for cross-lingual cross-task generalization
+(35 tasks). To the best of our knowledge, this is the
+first study in cross-lingual cross-task generaliza-
+tion (i.e., generalization to unseen tasks in different
+languages). Fig. 11 and Fig. 12 in the appendix
+contain the evaluation tasks for each track.
+Evaluation Metrics. Due to the diversity of our
+tasks and the open-ended generation nature of our
+formulation,7 we adopt ROUGE-L (Lin, 2004) for
+reporting aggregated performance results. This is a
+soft string overlap metric that can be applied to a
+wide range of text generation tasks. We show that
+the ranking from this metric correlates well with
+accuracy for classification tasks in Appendix E. We
+also conduct a human evaluation in §6.2.
+6To avoid data leakage, we exclude tasks from the training
+set if they are sourced from the same dataset as any test task.
+This results in 757 training tasks for the English track and
+1271 training tasks for the cross-lingual track.
+7Unlike Sanh et al. (2022) and Wei et al. (2022), who
+evaluate their models on classification tasks via option ranking
+(i.e., scoring the correct answer(s) higher than other candidate
+answers), we evaluate our models in an open-ended generation
+setting with no task-specific assumptions. We believe this is a
+more realistic measure of generalization to unseen tasks.
+5089
+5.2
+Baselines and Existing Models
+Here we discuss a variety of baselines and com-
+petitive models for our target application. See Ap-
+pendix D for implementation details.
+Heuristic baselines. We first evaluate the follow-
+ing heuristics to evaluate the possible shortcuts in
+the data. Copying Demo Output copies the output
+of a random demonstration example. Since we bal-
+ance the labels for our test tasks, the performance of
+this baseline will roughly equal a random guess or
+a majority baseline for classification tasks. Copy-
+ing Instance Input copies the given instance input.
+This strategy performs well on tasks where the
+target output largely overlaps with the input (e.g.,
+question rewriting, grammar error correction).
+Off-the-shelf pretrained language models. We
+evaluate existing LMs that are not fine-tuned with
+instruction-specific data. Specifically, we evalu-
+ate the 11B-parameter T5 (Raffel et al., 2020) as
+a direct counterpart of Tk-INSTRUCT. Due to the
+infilling pretraining objective of the original T5
+model, it cannot continue text well. Therefore,
+we evaluate its “LM-adapted” version, which is
+further trained with a language modeling objec-
+tive (Lester et al., 2021). Additionally, we evaluate
+GPT-3 (Brown et al., 2020), a 175B-parameter au-
+toregressive LM that has shown remarkable ability
+in following demonstrations provided in its prompt.
+Instruction-tuned models. In addition to our Tk-
+INSTRUCT (§4), we evaluate existing models that
+are fine-tuned to follow language instructions. In
+particular, we evaluate InstructGPT (Ouyang et al.,
+2022) which uses reinforcement learning to incor-
+porate human preferences into a GPT-3 pretrained
+model, and T0 (Sanh et al., 2022) which finetunes
+T5 on a collection of task prompts in PROMPT-
+SOURCE (Bach et al., 2022).
+Upper bound estimates. We estimate an upper
+bound on models’ generalization to unseen tasks by
+fine-tuning an oracle model on the tasks’ labeled
+instances. Since this model observes the hidden
+instances of the evaluation tasks, it is, by definition,
+an estimated upper bound to our generalization-
+based models. Specifically, we fine-tune a T5-11B
+model on the 119 English evaluation tasks, and
+a mT5-13B model on the 35 non-English tasks,
+with 1K random training instances per task, without
+overlap with the evaluation instances.
+Methods ↓/ Evaluation →
+En
+X-lingual
+Heuristic
+Baselines
+Copying Instance Input
+14.2
+5.4
+Copying Demo Output
+28.5
+50.3
+Pretrained LMs
+T5-LM (11B)
+30.2
+–
+GPT3 (175B)
+45.0
+51.3
+Instruction-tuned
+Models
+T0 (11B)
+32.3
+–
+InstructGPT (175B)
+52.1
+52.8
+Tk-INSTRUCT (ours, 11B)
+62.0
+–
+mTk-INSTRUCT (ours, 13B)
+57.1
+66.1
+Upper-bound (est.)
+Supervised Training
+74.3
+94.0
+Table 3: The overall performance of different methods
+on unseen tasks in the test set of SUP-NATINST (§6.1).
+We report ROUGE-L here as our aggregated metric.
+Models that leverage instructions show stronger gen-
+eralization to unseen tasks. In particular, our model
+that is fine-tuned on a diverse set of tasks outperforms
+InstructGPT and T0 by a large margin.
+15.2
+40.0
+64.6
+64.1
+76.9
+14.2
+32.3
+52.1
+54.3
+62.0
+0
+10
+20
+30
+40
+50
+60
+70
+80
+Copying
+Instance Input
+T0 (11B)
+InstructGPT
+Tk-Instruct
+(3B)
+Tk-Instruct
+(11B)
+ Human
+ROUGE-L
+Figure 3: Human evaluation vs. ROUGE-L for several
+methods (§6.2). The trends of these two metrics are
+highly correlated with a Pearson coefficient of 0.998.
+6
+Experimental Results
+6.1
+Overall Results
+Table 3 summarizes our overall benchmarking re-
+sults. We use the same input encoding that contains
+the most effective instructional elements (task defi-
+nition and two positive examples without the nega-
+tive examples and explanations) for all the methods.
+To better understand models’ generalization to dif-
+ferent tasks, we also break down the performance
+according to the task categories in Fig. 4. We refer
+the reader to Appendix H for more detailed analysis
+on each individual task.
+Instruction-tuning enables stronger generaliza-
+tion to unseen tasks. Generally instruction-tuned
+models perform better compared to their untuned
+LM counterparts (Tk-INSTRUCT vs. T5-LM, In-
+structGPT vs. GPT-3) and heuristic baselines. This
+indicates models do learn to follow instructions by
+finetuning on instruction data, and this can gen-
+eralize to new instructions for unseen tasks. T0
+is an exception, which is only slightly better than
+5090
+0
+25
+50
+75
+100
+ROUGE-L
+43
+1
+33
+49
+65
+76
+Textual Entailment
+50
+10
+46
+62
+75
+79
+Cause Effect Classification
+25
+8
+27
+50
+66
+86
+Coreference Resolution
+41
+2
+32
+63
+73
+86
+Dialogue Act Recognition
+53
+0
+50
+57
+70
+80
+Answerability Classification
+15
+7
+14
+50
+55
+100
+Word Analogy
+0
+25
+50
+75
+100
+ROUGE-L
+15
+24
+19
+44
+60
+84
+Overlap Extraction
+11
+16
+45
+57
+67
+75
+Keyword Tagging
+13
+63
+34
+65
+70
+73
+Question Rewriting
+8
+9
+19
+38
+40
+46
+Title Generation
+20
+38
+36
+47
+53
+58
+Data to Text
+7
+87
+74
+86
+88
+88
+Grammar Error Correction
+Supervised Training
+Copying Demo. Output
+Copying Instance Input
+T0 (11B)
+InstructGPT (175B)
+Tk-Instruct (Ours, 11B)
+Figure 4: Performance per evaluation task type. Tk-INSTRUCT consistently performs better than other generalization-
+based methods on all task types, while there is still a sizable gap compared to supervised training.
+T5-LM. We suspect this is because the style of
+prompting in T0’s training data is very different
+from our style of instructions.
+Our Tk-INSTRUCT outperforms InstructGPT.
+Our Tk-INSTRUCT and mTk-INSTRUCT models,
+which are trained with a variety of tasks, gener-
+alize best to unseen tasks for both English and
+non-English tasks in all evaluation task categories.
+InstructGPT also shows a great extent of general-
+ization to our evaluation tasks. However, we want
+to note it is not clear if InstructGPT’s training data
+overlaps with our evaluation tasks since their data
+is unavailable.
+There is a sizable gap for improvement. De-
+spite the impressive performance of current models,
+there is a sizable gap between the generalization of
+instruction-based models and the supervised train-
+ing approach, leaving more room for improvement.
+6.2
+Human Evaluation
+For language generation tasks, automatic metrics
+are only an approximation of human judgments;
+we conduct a human evaluation to confirm the find-
+ings so far. Specifically, we ask crowdworkers to
+indicate if they prefer the predicted answer by the
+model or the ground truth outputs for each instance
+with ties being allowed (see Appendix B for de-
+tails). The resulting human evaluation metric indi-
+cates how often model predictions were rated as at
+least as good as our ground truth labels. The theo-
+retical upper bound of this metric is 100% when the
+model is rated at least as good as the ground truth
+for all the instances. The results of human evalua-
+tion (shown in Fig. 3) align quite well with our au-
+tomatic metrics and confirm the human-perceived
+quality of our models.
+7
+Further Analysis
+We conduct further analysis to understand the im-
+portant factors for models to generalize across tasks.
+Due to the computational cost, this analysis is done
+on the English track and using the T5-3B check-
+point, except for the experiments on model sizes.
+7.1
+Scaling Trends of Generalization
+We study Tk-INSTRUCT’s generalization perfor-
+mance with respect to three scaling factors: the
+number of training tasks, the number of instances
+per task, and the model sizes. Fig. 5 presents the
+performance change by scaling each of them.
+More observed tasks improve the generalization.
+We fine-tune Tk-INSTRUCT with different numbers
+of tasks that are randomly sampled from the whole
+training set (Fig. 5a). The model generalization
+performance grows log-linearly8 as we increase
+the set of tasks used for training. Previous work
+(Mishra et al., 2022b; Sanh et al., 2022; Wei et al.,
+2022) has made similar observations on a much
+smaller scale, while we show that this trend holds
+even with 757 diverse training tasks.
+A large number of training instances do not
+help generalization. We then vary the number
+of instances per task that are used for finetuning
+(Fig. 5b). While the conventional wisdom in super-
+vised learning is that more training instances usu-
+ally helps (Banko and Brill, 2001; Sun et al., 2017;
+Hestness et al., 2017), in our setup, the model’s
+performance saturates when only 64 instances per
+task are used for training. A large number of train-
+ing instances would instead lead to longer training
+time and risk overfitting to the training tasks.
+8A linear function of an exponential increase of parameters,
+i.e., growth at a constant multiplicative rate.
+5091
+43.7
+45.6
+48.4
+51.2 52.9
+54.3
+30
+35
+40
+45
+50
+55
+60
+6
+60
+600
+ROUGE-L
+Number of Training Tasks
+(a)
+48.5
+50.7
+54.7
+53.7
+53.2
+53.7
+30
+35
+40
+45
+50
+55
+60
+6
+60
+600
+ROUGE-L
+Number of Instances per Training Task
+(b)
+40.1
+42.1
+48.0
+54.3
+62.0
+30
+35
+40
+45
+50
+55
+60
+65
+40
+400
+4000
+ROUGE-L
+Number of Model Parameters (Millions)
+(c)
+Figure 5: Scaling trends of models performance (§7.1) as a function of (a) the number of training tasks; (b) the
+number of instances per training task; (c) model sizes. x-axes are in log scale. The linear growth of model
+performance with exponential increase in observed tasks and model size is a promising trend. Evidently, the
+performance gain from more instances is limited.
+Testing Encoding →
+Training Encoding ↓
+Task ID
+Def
+Pos (1)
+Def
++ Pos (1) 
+Pos (2)  
+Def
++ Pos (2) 
+Def 
++ Pos (2) 
++ Neg (2) 
+Def
++ Pos (2) 
++ Neg (2) 
++ Expl
+Pos (4) 
+Def 
++ Pos (4) 
+Average
+Task ID
+21.2
+33.3
+16.8
+30.9
+23.0
+33.7
+33.9
+31.6
+26.0
+36.4
+33.9
+Def
+17.3
+45.0
+31.1
+43.8
+36.4
+46.4
+44.2
+44.3
+38.0
+46.0
+39.9
+Pos (1)
+10.9
+22.1
+43.9
+47.8
+46.6
+49.2
+46.2
+43.4
+46.6
+49.5
+43.1
+Def + Pos (1) 
+11.1
+42.2
+43.8
+52.4
+47.4
+53.3
+53.1
+51.8
+47.8
+53.7
+44.5
+Pos (2)  
+12.7
+22.4
+47.1
+50.2
+49.3
+52.3
+50.6
+46.7
+49.8
+52.4
+45.0
+Def + Pos (2) 
+12.4
+42.1
+44.5
+52.4
+49.0
+54.3
+53.5
+52.7
+50.3
+54.8
+46.4
+Def + Pos (2) + Neg (2)  
+14.0
+42.3
+43.6
+51.8
+48.6
+53.5
+54.3
+50.2
+49.6
+53.8
+45.9
+Def + Pos (2) + Neg (2) + Expl
+15.4
+42.0
+43.8
+50.7
+47.6
+51.9
+52.5
+52.6
+48.6
+52.2
+44.3
+Pos (4) 
+11.0
+23.9
+45.6
+49.8
+49.0
+51.7
+49.5
+47.5
+49.8
+51.3
+44.5
+Definition  + Pos (4) 
+11.0
+42.4
+44.3
+51.9
+48.7
+53.7
+53.4
+50.6
+50.5
+53.5
+46.0
+Table 4: Performance (ROUGE-L) of models trained and evaluated with various encodings. Diagonal numbers
+(underlined) represent performances of models trained and evaluated with the same instruction encoding. Each
+encoding is a combination of the elements in the instructions (Fig. 1). Task ID is a short string composed of
+dataset name and task category; Def represents the task definition; Pos (k) represents k positive examples; Neg
+(k) represents k negative examples; Expl represents explanation. These results (a) show the gains from various
+instructional elements, and (b) indicate surprising reliability of the models to various input encoding. A model
+trained with definition and positive examples (i.e., the last row) remains robust for different encodings.
+Tuning larger models with instructions consis-
+tently lead to gains. We study the effect of model
+scaling by initializing Tk-INSTRUCT from differ-
+ent sizes of pretrained T5 checkpoints, including
+the small, base, large, xl and xxl sizes (Fig. 5c). We
+found that increasing the model sizes consistently
+bring significant improvement (log-linearly with
+parameter size). This finding contradicts the claim
+in Xu et al. (2022) that “model size has little im-
+pact on performance with an extremely large num-
+ber of tasks.” Combining Fig. 5(a) and Fig. 5(c),
+one can create a correspondence between model
+size and task size. For example, a T5-large model
+trained with 757 tasks can achieve comparable per-
+formance (48.0 ROUGE-L) to the T5-3B model
+trained with 128 tasks (48.4 ROUGE-L), indicating
+that increasing the diversity of training tasks is an
+alternative to scaling model sizes.
+7.2
+Instructing with Different Elements
+We evaluate the performance of Tk-INSTRUCT un-
+der different instructional elements.
+Benefit of different instructional elements. As
+shown in Fig. 1, SUP-NATINST provides multiple
+elements for instructing a task. We train multiple
+models with different combinations of these ele-
+ments. The diagonal cells of Table 4 show the
+performance of our models when trained and eval-
+uated on a particular instruction encoding. Based
+on the diagonal numbers, including the task defi-
+nition consistently helps the model to generalize
+better. Moreover, combining the task definition
+with positive demonstration examples yields fur-
+ther improvement. However, adding more demon-
+stration examples is negligible. Negative examples
+help a little bit; explanations decrease performance,
+which is consistent with the observations of Mishra
+et al. (2022b) and Lampinen et al. (2022) when
+5092
+the model is not large enough. Future work can
+explore whether more powerful models can benefit
+from these elements.
+Generalization to different input encodings. We
+further investigate whether a model trained on a par-
+ticular encoding can generalize to other encodings.
+This can be read from the non-diagonal cells of
+Table 4. The negative result here is that definition-
+only models cannot generalize to example-only
+test encodings; and similarly, example-only models
+cannot generalize to definition-only test encodings.
+However, models trained on encodings that con-
+tain both definition and examples are surprisingly
+robust across different encoding variations.
+8

@@ -1,0 +1,28 @@
+Abstract
+Language models (LMs) are pretrained on di-
+verse data sources, including news, discussion
+forums, books, and online encyclopedias. A sig-
+nificant portion of this data includes opinions
+and perspectives which, on one hand, celebrate
+democracy and diversity of ideas, and on the
+other hand are inherently socially biased. Our
+work develops new methods to (1) measure po-
+litical biases in LMs trained on such corpora,
+along social and economic axes, and (2) mea-
+sure the fairness of downstream NLP models
+trained on top of politically biased LMs. We
+focus on hate speech and misinformation de-
+tection, aiming to empirically quantify the ef-
+fects of political (social, economic) biases in
+pretraining data on the fairness of high-stakes
+social-oriented tasks. Our findings reveal that
+pretrained LMs do have political leanings that
+reinforce the polarization present in pretrain-
+ing corpora, propagating social biases into hate
+speech predictions and misinformation detec-
+tors. We discuss the implications of our findings
+for NLP research and propose future directions
+to mitigate unfairness. 1
+Warning: This paper contains examples of hate
+speech.
+1
