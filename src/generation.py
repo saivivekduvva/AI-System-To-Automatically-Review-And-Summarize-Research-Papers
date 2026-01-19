@@ -15,17 +15,16 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel("gemini-flash-lite-latest")
 
 
-def generate_text(prompt, max_tokens=600, retries=3):
+def generate_text(prompt, max_tokens=300, retries=3):
     """
-    Safe Gemini text generation with retry and quota handling.
-    Prevents application crashes due to rate limits.
+    Lightweight Gemini usage for polishing / rewriting only.
     """
     for attempt in range(retries):
         try:
             response = model.generate_content(
                 prompt,
                 generation_config={
-                    "temperature": 0.3,
+                    "temperature": 0.2,
                     "max_output_tokens": max_tokens
                 }
             )
@@ -33,7 +32,7 @@ def generate_text(prompt, max_tokens=600, retries=3):
 
         except ResourceExhausted:
             if attempt < retries - 1:
-                time.sleep(5)  # wait before retry
+                time.sleep(5)
             else:
                 raise RuntimeError(
                     "Gemini API quota exceeded. Please wait or use a new API key."
@@ -45,10 +44,6 @@ def generate_text(prompt, max_tokens=600, retries=3):
 # --------------------------------------------------
 
 def load_analysis_outputs():
-    """
-    Loads cross-paper comparison and key findings
-    generated in Milestone 2.
-    """
     with open("outputs/analysis/cross_paper_comparison.json", "r", encoding="utf-8") as f:
         cross_comparison = json.load(f)
 
@@ -59,53 +54,69 @@ def load_analysis_outputs():
 
 
 # --------------------------------------------------
-# Section Generators (Milestone 3 Core)
+# Deterministic Draft Construction (NO LLM)
 # --------------------------------------------------
 
-def generate_abstract(key_findings):
+def build_abstract_draft(key_findings):
+    bullets = []
+    for paper, findings in key_findings.items():
+        bullets.append(f"- {paper}: {findings}")
+
+    return "\n".join(bullets)
+
+
+def build_methods_draft(cross_comparison):
+    lines = []
+
+    for paper, details in cross_comparison.get("method_comparison", {}).items():
+        dataset = details.get("dataset", "N/A")
+        model = details.get("model", "N/A")
+        metric = details.get("evaluation", "N/A")
+
+        lines.append(
+            f"{paper} uses {model} on {dataset} and evaluates performance using {metric}."
+        )
+
+    return " ".join(lines)
+
+
+def build_results_draft(key_findings):
+    results = []
+
+    for paper, finding in key_findings.items():
+        results.append(f"{paper} reports that {finding}")
+
+    return " ".join(results)
+
+
+# --------------------------------------------------
+# Light LLM Polishing (LOW TOKEN USAGE)
+# --------------------------------------------------
+
+def polish_text(text, instruction, max_tokens=200):
     prompt = f"""
-    Write a concise academic abstract (maximum 100 words)
-    summarizing the following synthesized findings.
+    Improve the academic clarity and flow of the following text.
+    Do NOT add new information.
+    Keep it concise and formal.
 
-    Findings:
-    {key_findings}
+    Instruction:
+    {instruction}
+
+    Text:
+    {text}
     """
-    return generate_text(prompt, max_tokens=180)
-
-
-def generate_methods(cross_comparison):
-    prompt = f"""
-    Compare and summarize the methodologies used across
-    the reviewed papers. Focus on datasets, models,
-    experimental design, and evaluation strategies.
-
-    Data:
-    {cross_comparison}
-    """
-    return generate_text(prompt)
-
-
-def generate_results(key_findings):
-    prompt = f"""
-    Synthesize the results across all papers.
-    Highlight common trends, major findings,
-    and notable differences.
-
-    Findings:
-    {key_findings}
-    """
-    return generate_text(prompt)
+    return generate_text(prompt, max_tokens=max_tokens)
 
 
 def generate_references(paper_metadata):
     prompt = f"""
-    Format the following paper metadata into
-    APA-style references.
+    Format the following paper metadata into APA-style references.
+    Do not add new references.
 
     Metadata:
     {paper_metadata}
     """
-    return generate_text(prompt)
+    return generate_text(prompt, max_tokens=250)
 
 
 # --------------------------------------------------
@@ -129,20 +140,39 @@ def save_outputs(abstract, methods, results, references):
 
 
 # --------------------------------------------------
-# Milestone 3 Pipeline Controller (FAIL-SAFE)
+# Milestone 3 Pipeline Controller (OPTIMIZED)
 # --------------------------------------------------
 
 def run_generation():
     """
-    Executes Milestone 3 draft generation safely.
-    Returns status for Streamlit UI handling.
+    Milestone 3:
+    - Deterministic draft construction
+    - Minimal LLM usage for polishing only
     """
     try:
         cross_comparison, key_findings = load_analysis_outputs()
 
-        abstract = generate_abstract(json.dumps(key_findings, indent=2))
-        methods = generate_methods(json.dumps(cross_comparison, indent=2))
-        results = generate_results(json.dumps(key_findings, indent=2))
+        # Step 1: Build drafts WITHOUT LLM
+        abstract_draft = build_abstract_draft(key_findings)
+        methods_draft = build_methods_draft(cross_comparison)
+        results_draft = build_results_draft(key_findings)
+
+        # Step 2: Light polishing with Gemini
+        abstract = polish_text(
+            abstract_draft,
+            "Condense into a maximum 100-word academic abstract.",
+            max_tokens=180
+        )
+
+        methods = polish_text(
+            methods_draft,
+            "Ensure clear academic comparison of methodologies."
+        )
+
+        results = polish_text(
+            results_draft,
+            "Ensure clarity and coherence in results synthesis."
+        )
 
         references = generate_references(
             cross_comparison.get("papers_metadata", [])
@@ -150,14 +180,14 @@ def run_generation():
 
         save_outputs(abstract, methods, results, references)
 
-        return True, "Milestone 3 completed: Draft sections generated successfully."
+        return True, "Milestone 3 completed with optimized LLM usage."
 
     except RuntimeError as e:
         return False, str(e)
 
 
 # --------------------------------------------------
-# Entry Point (CLI use only)
+# Entry Point
 # --------------------------------------------------
 
 if __name__ == "__main__":
