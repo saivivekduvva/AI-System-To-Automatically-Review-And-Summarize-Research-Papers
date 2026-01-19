@@ -8,6 +8,9 @@ from extraction import extract_text_from_pdfs, extract_sections_from_text
 from analysis import extract_key_findings, cross_paper_comparison
 from validation import validate_extraction
 
+# ---------------- MILESTONE 3 ---------------- #
+from generation import run_generation
+
 # ---------------- PAGE CONFIG ---------------- #
 
 st.set_page_config(
@@ -28,13 +31,16 @@ if "task" not in st.session_state:
 if "task1_done" not in st.session_state:
     st.session_state.task1_done = False
 
+if "task2_done" not in st.session_state:
+    st.session_state.task2_done = False
+
 # ====================================================
 # 🧭 TASK NAVIGATION
 # ====================================================
 
 st.subheader("🧭 Project Tasks")
 
-nav_col1, nav_col2 = st.columns(2)
+nav_col1, nav_col2, nav_col3 = st.columns(3)
 
 with nav_col1:
     if st.button("🔹 Task 1: Paper Retrieval", use_container_width=True):
@@ -47,10 +53,17 @@ with nav_col2:
         else:
             st.session_state.task = "task2"
 
+with nav_col3:
+    if st.button("🔹 Task 3: Draft Generation", use_container_width=True):
+        if not st.session_state.task2_done:
+            st.error("❌ Task 2 must be completed before starting Task 3.")
+        else:
+            st.session_state.task = "task3"
+
 st.divider()
 
 # ====================================================
-# 🟢 TASK 1 PAGE — PAPER RETRIEVAL
+# 🟢 TASK 1 — PAPER RETRIEVAL
 # ====================================================
 
 if st.session_state.task == "task1":
@@ -106,21 +119,19 @@ if st.session_state.task == "task1":
                     f"Task 1 completed successfully. {len(accepted)} paper(s) downloaded."
                 )
 
-                # 👉 Proceed to Task 2
-                if st.button("➡️ Proceed to Task 2: Extraction & Analysis"):
+                if st.button("➡️ Proceed to Task 2"):
                     st.session_state.task = "task2"
 
             else:
                 st.warning("No valid papers downloaded. Task 1 not completed.")
 
 # ====================================================
-# 🟣 TASK 2 PAGE — EXTRACTION & ANALYSIS
+# 🟣 TASK 2 — EXTRACTION & ANALYSIS
 # ====================================================
 
 elif st.session_state.task == "task2":
 
     st.subheader("🧠 Task 2: Text Extraction, Analysis & Validation")
-
     st.info("This task processes the papers downloaded in Task 1.")
 
     run_task2 = st.button("▶ Run Extraction & Analysis")
@@ -133,6 +144,8 @@ elif st.session_state.task == "task2":
             cross_paper_comparison()
             validate_extraction()
 
+        st.session_state.task2_done = True
+
         st.success("✅ Task 2 completed successfully.")
 
         st.markdown("### 📂 Generated Outputs")
@@ -140,3 +153,37 @@ elif st.session_state.task == "task2":
         st.write("• Key findings per paper")
         st.write("• Cross-paper comparison")
         st.write("• Validation report")
+
+        if st.button("➡️ Proceed to Task 3"):
+            st.session_state.task = "task3"
+
+# ====================================================
+# 🔵 TASK 3 — DRAFT GENERATION (MILESTONE 3)
+# ====================================================
+
+elif st.session_state.task == "task3":
+
+    st.subheader("✍️ Task 3: Automated Draft Generation")
+    st.info(
+        "This task generates structured research paper sections "
+        "(Abstract, Methods, Results, References) using an LLM."
+    )
+
+    run_task3 = st.button("▶ Generate Draft Sections")
+
+    if run_task3:
+        with st.spinner("Generating academic drafts using Gemini LLM..."):
+            run_generation()
+
+        st.success("✅ Task 3 completed successfully.")
+
+        st.markdown("### 📄 Generated Draft Sections")
+        st.write("• Abstract")
+        st.write("• Methods comparison")
+        st.write("• Results synthesis")
+        st.write("• APA-formatted references")
+
+        st.info(
+            "These drafts are saved under `outputs/sections/` "
+            "and will be used in Milestone 4 for review and UI presentation."
+        )

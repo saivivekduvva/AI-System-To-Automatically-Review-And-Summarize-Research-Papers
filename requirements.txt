@@ -20,8 +20,10 @@ langchain-community
 langchain-openai
 langgraph
 langsmith
+google-generativeai
+python-dotenv
+pydantic
 tiktoken
-openai
 
 # -----------------------------
 # Vector Store & Embeddings
