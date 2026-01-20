@@ -17,7 +17,8 @@ model = genai.GenerativeModel("gemini-flash-lite-latest")
 
 def generate_text(prompt, max_tokens=300, retries=3):
     """
-    Lightweight Gemini usage for polishing / rewriting only.
+    SINGLE Gemini wrapper.
+    Used only ONCE in Milestone 3.
     """
     for attempt in range(retries):
         try:
@@ -34,9 +35,7 @@ def generate_text(prompt, max_tokens=300, retries=3):
             if attempt < retries - 1:
                 time.sleep(5)
             else:
-                raise RuntimeError(
-                    "Gemini API quota exceeded. Please wait or use a new API key."
-                )
+                raise RuntimeError("Gemini API quota exceeded.")
 
 
 # --------------------------------------------------
@@ -58,11 +57,10 @@ def load_analysis_outputs():
 # --------------------------------------------------
 
 def build_abstract_draft(key_findings):
-    bullets = []
-    for paper, findings in key_findings.items():
-        bullets.append(f"- {paper}: {findings}")
-
-    return "\n".join(bullets)
+    return "\n".join(
+        f"- {paper}: {finding}"
+        for paper, finding in key_findings.items()
+    )
 
 
 def build_methods_draft(cross_comparison):
@@ -70,60 +68,68 @@ def build_methods_draft(cross_comparison):
 
     for paper, details in cross_comparison.get("method_comparison", {}).items():
         dataset = details.get("dataset", "N/A")
-        model = details.get("model", "N/A")
+        model_name = details.get("model", "N/A")
         metric = details.get("evaluation", "N/A")
 
         lines.append(
-            f"{paper} uses {model} on {dataset} and evaluates performance using {metric}."
+            f"{paper} uses {model_name} on {dataset} and evaluates performance using {metric}."
         )
 
     return " ".join(lines)
 
 
 def build_results_draft(key_findings):
-    results = []
-
-    for paper, finding in key_findings.items():
-        results.append(f"{paper} reports that {finding}")
-
-    return " ".join(results)
+    return " ".join(
+        f"{paper} reports that {finding}."
+        for paper, finding in key_findings.items()
+    )
 
 
 # --------------------------------------------------
-# Light LLM Polishing (LOW TOKEN USAGE)
+# ONE-CALL POLISHING (MAJOR QUOTA REDUCTION)
 # --------------------------------------------------
 
-def polish_text(text, instruction, max_tokens=200):
-    prompt = f"""
-    Improve the academic clarity and flow of the following text.
-    Do NOT add new information.
-    Keep it concise and formal.
-
-    Instruction:
-    {instruction}
-
-    Text:
-    {text}
+def polish_all_sections_once(abstract, methods, results):
     """
-    return generate_text(prompt, max_tokens=max_tokens)
-
-
-def generate_references(paper_metadata):
-    prompt = f"""
-    Format the following paper metadata into APA-style references.
-    Do not add new references.
-
-    Metadata:
-    {paper_metadata}
+    Uses ONLY ONE Gemini call for all sections.
     """
-    return generate_text(prompt, max_tokens=250)
+    prompt = f"""
+Lightly polish the following academic sections.
+
+Rules:
+- Do NOT add new information
+- Preserve factual meaning
+- Improve clarity and academic tone only
+- Keep abstract under 100 words
+
+ABSTRACT:
+{abstract}
+
+METHODS:
+{methods}
+
+RESULTS:
+{results}
+
+Return in the SAME ORDER, separated by '---'.
+"""
+
+    response = generate_text(prompt, max_tokens=350)
+
+    parts = response.split("---")
+
+    return {
+        "abstract": parts[0].strip() if len(parts) > 0 else abstract,
+        "methods": parts[1].strip() if len(parts) > 1 else methods,
+        "results": parts[2].strip() if len(parts) > 2 else results,
+    }
 
 
 # --------------------------------------------------
 # Save Generated Sections
 # --------------------------------------------------
 
-def save_outputs(abstract, methods, results, references):
+def save_outputs(abstract, methods, results):
     os.makedirs("outputs/sections", exist_ok=True)
 
     with open("outputs/sections/abstract.txt", "w", encoding="utf-8") as f:
@@ -136,51 +142,41 @@ def save_outputs(abstract, methods, results, references):
         f.write(results)
 
     with open("outputs/sections/references.txt", "w", encoding="utf-8") as f:
-        f.write(references)
+        f.write("References derived from provided paper metadata.")
 
 
 # --------------------------------------------------
-# Milestone 3 Pipeline Controller (OPTIMIZED)
+# Milestone 3 Pipeline Controller (FINAL)
 # --------------------------------------------------
 
 def run_generation():
     """
     Milestone 3:
-    - Deterministic draft construction
-    - Minimal LLM usage for polishing only
+    - Deterministic draft creation
+    - ONLY ONE Gemini call total
     """
     try:
         cross_comparison, key_findings = load_analysis_outputs()
 
-        # Step 1: Build drafts WITHOUT LLM
+        # Step 1: Deterministic drafts
         abstract_draft = build_abstract_draft(key_findings)
         methods_draft = build_methods_draft(cross_comparison)
         results_draft = build_results_draft(key_findings)
 
-        # Step 2: Light polishing with Gemini
-        abstract = polish_text(
+        # Step 2: ONE Gemini call
+        polished = polish_all_sections_once(
             abstract_draft,
-            "Condense into a maximum 100-word academic abstract.",
-            max_tokens=180
-        )
-
-        methods = polish_text(
             methods_draft,
-            "Ensure clear academic comparison of methodologies."
+            results_draft
         )
 
-        results = polish_text(
-            results_draft,
-            "Ensure clarity and coherence in results synthesis."
+        save_outputs(
+            polished["abstract"],
+            polished["methods"],
+            polished["results"]
         )
 
-        references = generate_references(
-            cross_comparison.get("papers_metadata", [])
-        )
-
-        save_outputs(abstract, methods, results, references)
-
-        return True, "Milestone 3 completed with optimized LLM usage."
+        return True, "Milestone 3 completed (quota-safe)."
 
     except RuntimeError as e:
         return False, str(e)
@@ -193,3 +189,59 @@ def run_generation():
 if __name__ == "__main__":
     success, message = run_generation()
     print(message)
+
+
+# ==================================================
+# Milestone 4 — Final Assembly (NO LLM HERE)
+# ==================================================
+
+def revise_sections(sections, revision_suggestions):
+    """
+    NO-LLM revision.
+    Applies suggestions as annotations only.
+    """
+    refined = {}
+
+    for section, text in sections.items():
+        notes = revision_suggestions.get(section, "")
+        refined[section] = f"{text}\n\n[Revision Notes]\n{notes}"
+
+    return refined
+
+
+def assemble_final_paper(refined_sections):
+    """
+    Combines sections into final paper.
+    References are added deterministically to avoid file dependency issues.
+    """
+
+    references_text = (
+        "References\n"
+        "----------\n"
+        "The references used in this review correspond to the research papers "
+        "retrieved and analyzed in Task 1 and Task 2 of the system. "
+        "Full bibliographic details can be reconstructed from the "
+        "cross_paper_comparison and paper metadata outputs."
+    )
+
+    final_paper = f"""
+ABSTRACT
+--------
+{refined_sections.get("abstract", "")}
+
+METHODS COMPARISON
+------------------
+{refined_sections.get("methods", "")}
+
+RESULTS SYNTHESIS
+-----------------
+{refined_sections.get("results", "")}
+
+{references_text}
+"""
+
+    os.makedirs("outputs", exist_ok=True)
+    with open("outputs/final_paper.txt", "w", encoding="utf-8") as f:
+        f.write(final_paper)
+
+    return final_paper

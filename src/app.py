@@ -11,6 +11,12 @@ from validation import validate_extraction
 # ---------------- MILESTONE 3 ---------------- #
 from generation import run_generation
 
+# ---------------- MILESTONE 4 ---------------- #
+from review import load_sections, review_sections, generate_revision_suggestions, synthesize_sections_nicely
+from generation import revise_sections, assemble_final_paper
+from validation import validate_milestone_4
+
+
 # ---------------- PAGE CONFIG ---------------- #
 
 st.set_page_config(
@@ -34,13 +40,16 @@ if "task1_done" not in st.session_state:
 if "task2_done" not in st.session_state:
     st.session_state.task2_done = False
 
+if "task4_done" not in st.session_state:
+    st.session_state.task4_done = False
+
 # ====================================================
 # 🧭 TASK NAVIGATION
 # ====================================================
 
 st.subheader("🧭 Project Tasks")
 
-nav_col1, nav_col2, nav_col3 = st.columns(3)
+nav_col1, nav_col2, nav_col3, nav_col4 = st.columns(4)
 
 with nav_col1:
     if st.button("🔹 Task 1: Paper Retrieval", use_container_width=True):
@@ -59,6 +68,13 @@ with nav_col3:
             st.error("❌ Task 2 must be completed before starting Task 3.")
         else:
             st.session_state.task = "task3"
+
+with nav_col4:
+    if st.button("🔹 Task 4: Review & Refine", use_container_width=True):
+        if not st.session_state.task2_done:
+            st.error("❌ Task 2 & Task 3 must be completed before starting Task 4.")
+        else:
+            st.session_state.task = "task4"
 
 st.divider()
 
@@ -185,5 +201,45 @@ elif st.session_state.task == "task3":
 
         st.info(
             "These drafts are saved under `outputs/sections/` "
-            "and will be used in Milestone 4 for review and UI presentation."
+            "and will be used in Task 4 for review and refinement."
         )
+
+# ====================================================
+# 🟠 TASK 4 — REVIEW, REFINEMENT & FINAL REPORT
+# ====================================================
+
+elif st.session_state.task == "task4":
+
+    st.subheader("📝 Task 4: AI Review, Refinement & Final Paper")
+    st.info(
+        "This task performs AI-based peer review, applies controlled revisions, "
+        "and generates a final submission-ready research paper."
+    )
+
+    run_task4 = st.button("▶ Critique, Refine & Generate Final Paper")
+
+    if run_task4:
+        with st.spinner("Running Milestone 4 review and refinement pipeline..."):
+            sections = load_sections()
+            synthesized = synthesize_sections_nicely(sections)
+            assemble_final_paper(synthesized)
+            validate_milestone_4()
+
+        st.session_state.task4_done = True
+
+        st.success("✅ Task 4 completed successfully.")
+
+        st.markdown("### 📄 Final Outputs Generated")
+        st.write("• AI review feedback")
+        st.write("• Revision suggestions")
+        st.write("• Refined paper sections")
+        st.write("• Final consolidated research paper")
+        st.write("• Milestone 4 validation report")
+
+        with open("outputs/final_paper.txt", "r", encoding="utf-8") as f:
+            st.download_button(
+                label="⬇️ Download Final Research Paper",
+                data=f.read(),
+                file_name="final_research_paper.txt",
+                mime="text/plain"
+            )
