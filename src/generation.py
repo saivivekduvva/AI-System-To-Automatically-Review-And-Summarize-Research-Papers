@@ -1,247 +1,85 @@
 import os
 import json
 import time
-from dotenv import load_dotenv
 import google.generativeai as genai
-from google.api_core.exceptions import ResourceExhausted
-
-# --------------------------------------------------
-# Environment & Gemini Configuration
-# --------------------------------------------------
+from dotenv import load_dotenv
 
 load_dotenv()
-
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel("gemini-flash-lite-latest")
 
+# Using gemini-1.5-flash for the best balance of speed and free-tier quota
+model = genai.GenerativeModel(
+    model_name="gemini-flash-lite-latest",
+    system_instruction="You are an academic writing assistant. Output the requested sections clearly. Use '###SECTION_BREAK###' as a delimiter."
+)
 
-def generate_text(prompt, max_tokens=300, retries=3):
-    """
-    SINGLE Gemini wrapper.
-    Used only ONCE in Milestone 3.
-    """
-    for attempt in range(retries):
-        try:
-            response = model.generate_content(
-                prompt,
-                generation_config={
-                    "temperature": 0.2,
-                    "max_output_tokens": max_tokens
-                }
-            )
-            return response.text.strip()
+INPUT_PATH = os.path.join("data", "analysis", "paper_profiles.json")
+OUTPUT_DIR = os.path.join("outputs", "drafts")
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+# In src/generation.py
 
-        except ResourceExhausted:
-            if attempt < retries - 1:
-                time.sleep(5)
-            else:
-                raise RuntimeError("Gemini API quota exceeded.")
+def generate_everything(specific_profile=None):
+    # If no profile is passed, fallback to the JSON file (original behavior)
+    if specific_profile is None:
+        with open(INPUT_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            paper = data[0] if isinstance(data, list) else data
+    else:
+        paper = specific_profile
 
+    p_id = paper.get("paper_id", "N/A")
+    abstract_ctx = paper.get('abstract', '')[:1500] 
+    method_ctx = paper.get('methodology', '')[:1500]
+    findings_ctx = paper.get('key_findings', [])
 
-# --------------------------------------------------
-# Load Milestone 2 Outputs
-# --------------------------------------------------
-
-def load_analysis_outputs():
-    with open("outputs/analysis/cross_paper_comparison.json", "r", encoding="utf-8") as f:
-        cross_comparison = json.load(f)
-
-    with open("outputs/analysis/key_findings.json", "r", encoding="utf-8") as f:
-        key_findings = json.load(f)
-
-    return cross_comparison, key_findings
-
-
-# --------------------------------------------------
-# Deterministic Draft Construction (NO LLM)
-# --------------------------------------------------
-
-def build_abstract_draft(key_findings):
-    return "\n".join(
-        f"- {paper}: {finding}"
-        for paper, finding in key_findings.items()
+    # ... (rest of your prompt logic stays the same)
+    content = (
+        f"Paper ID: {p_id}\n\n"
+        f"ABSTRACT CONTENT:\n{abstract_ctx}\n\n"
+        f"METHODOLOGY CONTENT:\n{method_ctx}\n\n"
+        f"FINDINGS:\n{findings_ctx}"
     )
 
-
-def build_methods_draft(cross_comparison):
-    lines = []
-
-    for paper, details in cross_comparison.get("method_comparison", {}).items():
-        dataset = details.get("dataset", "N/A")
-        model_name = details.get("model", "N/A")
-        metric = details.get("evaluation", "N/A")
-
-        lines.append(
-            f"{paper} uses {model_name} on {dataset} and evaluates performance using {metric}."
-        )
-
-    return " ".join(lines)
-
-
-def build_results_draft(key_findings):
-    return " ".join(
-        f"{paper} reports that {finding}."
-        for paper, finding in key_findings.items()
-    )
-
-
-# --------------------------------------------------
-# ONE-CALL POLISHING (MAJOR QUOTA REDUCTION)
-# --------------------------------------------------
-
-def polish_all_sections_once(abstract, methods, results):
-    """
-    Uses ONLY ONE Gemini call for all sections.
-    """
     prompt = f"""
-Lightly polish the following academic sections.
+    Using the provided data, generate these 4 comprehensive sections. 
+    Separate them using the exact string '###SECTION_BREAK###'.
 
-Rules:
-- Do NOT add new information
-- Preserve factual meaning
-- Improve clarity and academic tone only
-- Keep abstract under 100 words
+    1. A formal Academic Abstract (around 150-200 words).
+    2. A Detailed Methodology Analysis focusing on the technical setup.
+    3. A Results & Discussion summary based on the findings.
+    4. A complete APA-style Citation.
 
-ABSTRACT:
-{abstract}
-
-METHODS:
-{methods}
-
-RESULTS:
-{results}
-
-Return in the SAME ORDER, separated by '---'.
-"""
-
-    response = generate_text(prompt, max_tokens=350)
-
-    parts = response.split("---")
-
-    return {
-        "abstract": parts[0].strip() if len(parts) > 0 else abstract,
-        "methods": parts[1].strip() if len(parts) > 1 else methods,
-        "results": parts[2].strip() if len(parts) > 2 else results,
-    }
-
-
-# --------------------------------------------------
-# Save Generated Sections
-# --------------------------------------------------
-
-def save_outputs(abstract, methods, results):
-    os.makedirs("outputs/sections", exist_ok=True)
-
-    with open("outputs/sections/abstract.txt", "w", encoding="utf-8") as f:
-        f.write(abstract)
-
-    with open("outputs/sections/methods.txt", "w", encoding="utf-8") as f:
-        f.write(methods)
-
-    with open("outputs/sections/results.txt", "w", encoding="utf-8") as f:
-        f.write(results)
-
-    with open("outputs/sections/references.txt", "w", encoding="utf-8") as f:
-        f.write("References derived from provided paper metadata.")
-
-
-# --------------------------------------------------
-# Milestone 3 Pipeline Controller (FINAL)
-# --------------------------------------------------
-
-def run_generation():
+    Paper Data:
+    {content}
     """
-    Milestone 3:
-    - Deterministic draft creation
-    - ONLY ONE Gemini call total
-    """
+
+    print(f"🚀 Generating expanded content for {p_id}...")
     try:
-        cross_comparison, key_findings = load_analysis_outputs()
-
-        # Step 1: Deterministic drafts
-        abstract_draft = build_abstract_draft(key_findings)
-        methods_draft = build_methods_draft(cross_comparison)
-        results_draft = build_results_draft(key_findings)
-
-        # Step 2: ONE Gemini call
-        polished = polish_all_sections_once(
-            abstract_draft,
-            methods_draft,
-            results_draft
+        # 2. SLIGHTLY INCREASED OUTPUT (Max 2000 tokens)
+        response = model.generate_content(
+            prompt,
+            generation_config={
+                "max_output_tokens": 2000, 
+                "temperature": 0.25
+            }
         )
+        
+        # 3. Local processing
+        sections = response.text.split("###SECTION_BREAK###")
+        filenames = ["abstract.txt", "methodology.txt", "results.txt", "references.txt"]
 
-        save_outputs(
-            polished["abstract"],
-            polished["methods"],
-            polished["results"]
-        )
+        for i, text in enumerate(sections):
+            if i < len(filenames):
+                with open(os.path.join(OUTPUT_DIR, filenames[i]), "w", encoding="utf-8") as f:
+                    f.write(text.strip())
+        
+        print(f"✅ All files saved in: {OUTPUT_DIR}")
 
-        return True, "Milestone 3 completed (quota-safe)."
-
-    except RuntimeError as e:
-        return False, str(e)
-
-
-# --------------------------------------------------
-# Entry Point
-# --------------------------------------------------
+    except Exception as e:
+        if "429" in str(e):
+            print("❌ Rate limit hit! Wait 60 seconds and try again.")
+        else:
+            print(f"❌ Error: {e}")
 
 if __name__ == "__main__":
-    success, message = run_generation()
-    print(message)
-
-
-# ==================================================
-# Milestone 4 — Final Assembly (NO LLM HERE)
-# ==================================================
-
-def revise_sections(sections, revision_suggestions):
-    """
-    NO-LLM revision.
-    Applies suggestions as annotations only.
-    """
-    refined = {}
-
-    for section, text in sections.items():
-        notes = revision_suggestions.get(section, "")
-        refined[section] = f"{text}\n\n[Revision Notes]\n{notes}"
-
-    return refined
-
-
-def assemble_final_paper(refined_sections):
-    """
-    Combines sections into final paper.
-    References are added deterministically to avoid file dependency issues.
-    """
-
-    references_text = (
-        "References\n"
-        "----------\n"
-        "The references used in this review correspond to the research papers "
-        "retrieved and analyzed in Task 1 and Task 2 of the system. "
-        "Full bibliographic details can be reconstructed from the "
-        "cross_paper_comparison and paper metadata outputs."
-    )
-
-    final_paper = f"""
-ABSTRACT
---------
-{refined_sections.get("abstract", "")}
-
-METHODS COMPARISON
-------------------
-{refined_sections.get("methods", "")}
-
-RESULTS SYNTHESIS
------------------
-{refined_sections.get("results", "")}
-
-{references_text}
-"""
-
-    os.makedirs("outputs", exist_ok=True)
-    with open("outputs/final_paper.txt", "w", encoding="utf-8") as f:
-        f.write(final_paper)
-
-    return final_paper
+    generate_everything()

@@ -1,194 +1,90 @@
 import os
 import json
-import time
-from dotenv import load_dotenv
 import google.generativeai as genai
-from google.api_core.exceptions import ResourceExhausted
+from dotenv import load_dotenv
 
 # --------------------------------------------------
-# Environment & Gemini Configuration
+# Setup
 # --------------------------------------------------
-
 load_dotenv()
-
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+# Use 1.5-flash for stability
 model = genai.GenerativeModel("gemini-flash-lite-latest")
 
-OUTPUT_ANALYSIS_DIR = os.path.join("outputs", "analysis")
-SECTIONS_DIR = os.path.join("outputs", "sections")
+# Define paths (matching your folder structure)
+DRAFTS_DIR = os.path.join("outputs", "drafts")
+ANALYSIS_DIR = os.path.join("outputs", "analysis")
+os.makedirs(ANALYSIS_DIR, exist_ok=True)
 
-os.makedirs(OUTPUT_ANALYSIS_DIR, exist_ok=True)
+def load_local_drafts():
+    """Reads the .txt files generated in Milestone 3."""
+    sections = {}
+    for part in ["abstract", "methodology", "results"]:
+        path = os.path.join(DRAFTS_DIR, f"{part}.txt")
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                sections[part] = f.read().strip()
+        else:
+            sections[part] = "[Missing Section]"
+    return sections
 
+def run_milestone_4():
+    # 1. Load the generated text
+    drafts = load_local_drafts()
+    
+    # 2. Construct a single optimized prompt
+    # This combines Review + Synthesis to save API calls
+    prompt = f"""
+    You are an academic peer reviewer and editor. 
+    Below is a draft for a single paper. Perform two tasks:
+    
+    TASK 1: CRITICAL REVIEW
+    Evaluate clarity, structure, and logical flow. Provide 3-4 bullet points.
+    
+    TASK 2: REFINED SYNTHESIS
+    Rewrite the Abstract, Methodology, and Results into a polished, professional version.
+    Use '###SPLIT###' between Task 1 and Task 2.
+    Use '---' between the refined sections in Task 2.
 
-def generate_text(prompt, max_tokens=220):
+    DRAFT CONTENT:
+    ABSTRACT: {drafts['abstract']}
+    METHODOLOGY: {drafts['methodology']}
+    RESULTS: {drafts['results']}
     """
-    SINGLE-SHOT Gemini call.
-    NO retries to avoid quota exhaustion cascades.
-    """
+
+    print("🚀 Running combined Review and Synthesis...")
     try:
+        # Increased tokens to allow for both the review and the new draft
         response = model.generate_content(
             prompt,
-            generation_config={
-                "temperature": 0.2,
-                "max_output_tokens": max_tokens
-            }
+            generation_config={"max_output_tokens": 1500, "temperature": 0.2}
         )
-        return response.text.strip()
+        
+        full_text = response.text
+        
+        # 3. Save the full raw analysis for reference
+        with open(os.path.join(ANALYSIS_DIR, "full_review.txt"), "w", encoding="utf-8") as f:
+            f.write(full_text)
 
-    except ResourceExhausted:
-        # Graceful fallback (NO crash)
-        return (
-            "Gemini quota exceeded. Review performed conceptually. "
-            "Sections are structurally valid but may require manual refinement."
-        )
+        # 4. Split and save the feedback separately (JSON)
+        if "###SPLIT###" in full_text:
+            review_part, synthesis_part = full_text.split("###SPLIT###")
+        else:
+            review_part, synthesis_part = full_text, "Synthesis failed to split."
 
+        feedback = {
+            "peer_review_notes": review_part.strip(),
+            "refined_draft": synthesis_part.strip()
+        }
 
-# --------------------------------------------------
-# Load Generated Sections (Milestone 3 Outputs)
-# --------------------------------------------------
+        with open(os.path.join(ANALYSIS_DIR, "review_feedback.json"), "w", encoding="utf-8") as f:
+            json.dump(feedback, f, indent=4)
 
-def load_sections():
-    sections_path = os.path.join(SECTIONS_DIR, "all_sections.json")
+        print(f"✅ Milestone 4 Complete. Feedback saved to: {ANALYSIS_DIR}")
 
-    with open(sections_path, "r", encoding="utf-8") as f:
-        all_sections = json.load(f)
+    except Exception as e:
+        print(f"❌ Error during review: {e}")
 
-    structured = {
-        "abstracts": [],
-        "methods": [],
-        "results": []
-    }
-
-    for paper_id, paper_data in all_sections.items():
-        title = paper_data.get("original_title", paper_id)
-        sec = paper_data.get("sections", {})
-
-        if "abstract" in sec:
-            structured["abstracts"].append(f"{title}: {sec['abstract'][:400]}")
-
-        if "methods" in sec:
-            structured["methods"].append(f"{title}: {sec['methods'][:400]}")
-
-        if "results" in sec:
-            structured["results"].append(f"{title}: {sec['results'][:400]}")
-
-    return structured
-
-
-
-# --------------------------------------------------
-# SINGLE-CALL REVIEW + SUGGESTION (MILESTONE 4 CORE)
-# --------------------------------------------------
-
-def review_sections(sections):
-    """
-    Performs ENTIRE review in ONE Gemini call.
-    """
-    prompt = f"""
-You are an academic peer reviewer.
-
-Perform a HIGH-LEVEL review of the following paper.
-Do NOT rewrite content.
-Do NOT add new information.
-
-Evaluate:
-- clarity
-- structure
-- missing comparisons
-- redundancy
-- logical flow
-
-CONTENT:
-
-ABSTRACT:
-{sections.get("abstract", "")}
-
-METHODS:
-{sections.get("methods", "")}
-
-RESULTS:
-{sections.get("results", "")}
-
-Return:
-1. Overall critique (short paragraph)
-2. Section-wise improvement bullets
-"""
-
-    review_text = generate_text(prompt)
-
-    review_feedback = {
-        "overall_review": review_text
-    }
-
-    with open(
-        os.path.join(OUTPUT_ANALYSIS_DIR, "review_feedback.json"),
-        "w",
-        encoding="utf-8"
-    ) as f:
-        json.dump(review_feedback, f, indent=2)
-
-    return review_feedback
-
-
-# --------------------------------------------------
-# Deterministic Revision Suggestions (NO LLM)
-# --------------------------------------------------
-
-def generate_revision_suggestions(review_feedback):
-    """
-    NO LLM usage here.
-    Converts review into deterministic guidance.
-    """
-    suggestions = {
-        "abstract": "Improve clarity and conciseness based on review feedback.",
-        "methods": "Ensure clearer comparison across papers and datasets.",
-        "results": "Improve synthesis and reduce redundancy."
-    }
-
-    with open(
-        os.path.join(OUTPUT_ANALYSIS_DIR, "revision_suggestions.json"),
-        "w",
-        encoding="utf-8"
-    ) as f:
-        json.dump(suggestions, f, indent=2)
-
-    return suggestions
-
-
-def synthesize_sections_nicely(structured_sections):
-    """
-    ONE LLM CALL.
-    Produces clean, short, human-readable synthesis.
-    """
-    prompt = f"""
-You are writing a concise academic synthesis.
-
-Based on the following paper excerpts, write:
-
-1. A unified abstract (80–100 words)
-2. A methods comparison paragraph (60–80 words)
-3. A results synthesis paragraph (60–80 words)
-
-DO NOT mention paper IDs.
-DO NOT add new facts.
-Write clean academic prose.
-
-ABSTRACT SOURCES:
-{chr(10).join(structured_sections["abstracts"])}
-
-METHOD SOURCES:
-{chr(10).join(structured_sections["methods"])}
-
-RESULT SOURCES:
-{chr(10).join(structured_sections["results"])}
-"""
-
-    text = generate_text(prompt, max_tokens=350)
-
-    parts = text.split("\n\n")
-
-    return {
-        "abstract": parts[0].strip(),
-        "methods": parts[1].strip() if len(parts) > 1 else "",
-        "results": parts[2].strip() if len(parts) > 2 else ""
-    }
+if __name__ == "__main__":
+    run_milestone_4()

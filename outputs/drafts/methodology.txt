@@ -1,0 +1,9 @@
+## Detailed Methodology Analysis
+
+The methodology described centers on leveraging Large Language Models (LLMs), which are fundamentally based on the transformer architecture (Vaswani et al., 2017), for structured, safety-analytical tasks, specifically reasoning about fault propagation in model graphs and associated risks. The core technical challenge addressed is the application of these models to formal hazard analysis, moving beyond their typical use in creative, text-based tasks.
+
+A key technical finding relates to input data representation. The study observed that although LLMs possess the capability to directly read and interpret structured formats like XML, operational accuracy is enhanced when the input system description is presented in a format bearing a closer resemblance to natural language. This suggests a preference for semantic richness over strict syntactic adherence in the prompt engineering phase for safety analysis tasks.
+
+Furthermore, the methodology involved equipping agents with multiple external tools for complex reasoning. A significant technical constraint identified was the rapid degradation of accuracy when multiple tools were available, unless the verbalized trigger conditions for invoking these tools were sufficiently separated in the linguistic space. This implies a need for meticulous design of tool-trigger phrasing to avoid ambiguity and erroneous selection by the LLM.
+
+To mitigate these issues, the research employed a structured approach, likely involving a Chain-of-Thought (CoT) flow. This flow was designed to be tightly guided by predefined concepts, ensuring that tool triggers were strictly associated with specific task concepts, thereby preventing overlap and ensuring correct tool invocation. This structured prompting technique successfully guided the LLM to accurately identify tasks, formulate necessary steps, and retrieve the correct information using the appropriate tools across all tested examples.

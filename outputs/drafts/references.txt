@@ -1,0 +1,11 @@
+## APA-style Citation
+
+Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, Ł., & Polosukhin, I. (2017). Attention is all you need. *Advances in Neural Information Processing Systems*, *30*.
+
+Jin, S., Pan, S., Wang, Y., & Li, Z. (2023). *[Citation details for Jin et al. 2023 would be inserted here if available]*.
+
+Pan, S., Wang, Y., & Li, Z. (2023). *[Citation details for Pan et al. 2023 would be inserted here if available]*.
+
+Reuters. (2023). *[Citation details for Reuters 2023 regarding ChatPGT user base would be inserted here if available]*.
+
+Wang, Y., Li, Z., & Jin, S. (2023). *[Citation details for Wang et al. 2023 would be inserted here if available]*.

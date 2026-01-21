@@ -1,54 +1,37 @@
 import os
 import requests
-import fitz  # PyMuPDF
-from langdetect import detect
 from dotenv import load_dotenv
+
+# --------------------------------------------------
+# Environment Setup
+# --------------------------------------------------
 
 load_dotenv()
 
-SEMANTIC_SCHOLAR_API_URL = "https://api.semanticscholar.org/graph/v1/paper/search"
-MAX_PAPERS = 12
+SEMANTIC_SCHOLAR_API_KEY = os.getenv("SEMANTIC_SCHOLAR_API_KEY")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PDF_DIR = os.path.join(BASE_DIR, "data", "pdfs")
 
-PDF_DIR = "data/pdfs"
+os.makedirs(PDF_DIR, exist_ok=True)
 
-API_KEY = os.getenv("SEMANTIC_SCHOLAR_API_KEY")
+SEMANTIC_SCHOLAR_API_URL = (
+    "https://api.semanticscholar.org/graph/v1/paper/search"
+)
 
+# --------------------------------------------------
+# Semantic Scholar Search
+# --------------------------------------------------
 
-def is_valid_english_pdf(pdf_bytes: bytes) -> bool:
-    """
-    Checks:
-    - PDF is readable
-    - Contains text
-    - Language is English
-    """
-    try:
-        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-        text = ""
-
-        for page in doc[:2]:
-            text += page.get_text()
-
-        if not text.strip():
-            return False
-
-        return detect(text) == "en"
-
-    except Exception:
-        return False
-
-
-def retrieve_and_filter_papers_stream(topic: str):
-    """
-    Generator version:
-    Yields result for EACH paper immediately
-    """
-
-    headers = {"x-api-key": API_KEY} if API_KEY else {}
-
+def search_papers(topic: str, limit: int = 20, offset: int = 0):
     params = {
         "query": topic,
-        "limit": MAX_PAPERS,
-        "fields": "title,authors,year,abstract,openAccessPdf"
+        "limit": limit,
+        "offset": offset,
+        "fields": "title,year,citationCount,openAccessPdf"
+    }
+
+    headers = {
+        "x-api-key": SEMANTIC_SCHOLAR_API_KEY
     }
 
     response = requests.get(
@@ -57,46 +40,111 @@ def retrieve_and_filter_papers_stream(topic: str):
         headers=headers,
         timeout=20
     )
-    response.raise_for_status()
 
-    papers = response.json().get("data", [])
+    if response.status_code != 200:
+        print("Semantic Scholar API error:", response.status_code)
+        return []
 
-    os.makedirs(PDF_DIR, exist_ok=True)
+    return response.json().get("data", [])
 
-    for idx, paper in enumerate(papers, start=1):
-        title = paper.get("title", "Unknown Title")
-        pdf_info = paper.get("openAccessPdf")
+# --------------------------------------------------
+# Paper Ranking
+# --------------------------------------------------
 
-        # Case 1: Paid or no PDF
-        if not pdf_info or not pdf_info.get("url"):
-            yield idx, title, "rejected", "Paid / No open-access PDF"
-            continue
+def rank_papers(papers, top_k: int = 3):
+    return sorted(
+        papers,
+        key=lambda p: (
+            p.get("citationCount", 0),
+            p.get("year", 0)
+        ),
+        reverse=True
+    )[:top_k]
 
-        try:
-            pdf_response = requests.get(pdf_info["url"], timeout=20)
+# --------------------------------------------------
+# PDF Validation
+# --------------------------------------------------
 
-            # Case 2: Broken link
-            if pdf_response.status_code != 200:
-                yield idx, title, "rejected", "Broken PDF link"
+def is_valid_pdf(content: bytes) -> bool:
+    return content[:4] == b"%PDF"
+
+# --------------------------------------------------
+# Download Logic (Search Until Valid PDF Found)
+# --------------------------------------------------
+
+def download_until_n_pdfs(
+    topic: str,
+    required: int = 3,
+    batch_size: int = 20
+):
+    downloaded = 0
+    offset = 0
+    checked_titles = set()
+
+    while downloaded < required:
+        papers = search_papers(
+            topic,
+            limit=batch_size,
+            offset=offset
+        )
+
+        if not papers:
+            print("No more papers available.")
+            break
+
+        for paper in papers:
+            if downloaded >= required:
+                break
+
+            title = paper.get("title", "Unknown")
+
+            if title in checked_titles:
+                continue
+            checked_titles.add(title)
+
+            pdf_info = paper.get("openAccessPdf")
+            if not pdf_info or not pdf_info.get("url"):
                 continue
 
-            # Case 3: Invalid / non-English PDF
-            if not is_valid_english_pdf(pdf_response.content):
-                yield idx, title, "rejected", "Non-English or invalid PDF"
-                continue
+            pdf_url = pdf_info["url"]
 
-            safe_title = (
-                title.replace("/", "_")
-                .replace(":", "")
-                .replace(" ", "_")
-            )
+            try:
+                response = requests.get(
+                    pdf_url,
+                    timeout=20,
+                    headers={"User-Agent": "Mozilla/5.0"}
+                )
 
-            file_path = os.path.join(PDF_DIR, f"{safe_title}.pdf")
+                if response.status_code != 200:
+                    continue
 
-            with open(file_path, "wb") as f:
-                f.write(pdf_response.content)
+                if not is_valid_pdf(response.content):
+                    print(f"Invalid PDF skipped → {title}")
+                    continue
 
-            yield idx, title, "accepted", "Downloaded successfully"
+                downloaded += 1
+                pdf_path = os.path.join(
+                    PDF_DIR,
+                    f"paper_{downloaded}.pdf"
+                )
 
-        except Exception:
-            yield idx, title, "rejected", "PDF download failed"
+                with open(pdf_path, "wb") as f:
+                    f.write(response.content)
+
+                print(f"Downloaded valid PDF → {pdf_path}")
+
+            except Exception as e:
+                print("Download error:", e)
+
+        offset += batch_size
+
+    print(f"\nTotal valid PDFs downloaded: {downloaded}")
+
+# --------------------------------------------------
+# Entry Point
+# --------------------------------------------------
+
+if __name__ == "__main__":
+    topic = input("Enter research topic: ").strip()
+    print(f"Searching best papers related to: {topic}")
+    download_until_n_pdfs(topic, required=1)
