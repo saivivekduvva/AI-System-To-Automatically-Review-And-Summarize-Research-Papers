@@ -2,3 +2,4 @@
 vectorstore/
 __pycache__/
 venv
+data/
