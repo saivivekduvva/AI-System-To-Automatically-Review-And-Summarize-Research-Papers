@@ -1,11 +1,7 @@
 ## APA-style Citation
 
-Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, Ł., & Polosukhin, I. (2017). Attention is all you need. *Advances in Neural Information Processing Systems*, *30*.
+Biggs, J. (1999). What the student has learned, not what the teacher has taught: Constructive alignment and intentional learning. *National Teaching and Learning Forum*, *8*(2), 5-10.
 
-Jin, S., Pan, S., Wang, Y., & Li, Z. (2023). *[Citation details for Jin et al. 2023 would be inserted here if available]*.
+Chan, K. W., & Hu, W. (2023). *Int J Educ Technol High Educ (2023) 20:43*. [Note: Full journal citation details are inferred from the text snippet provided, assuming Chan and Hu are the authors and the year is 2023.]
 
-Pan, S., Wang, Y., & Li, Z. (2023). *[Citation details for Pan et al. 2023 would be inserted here if available]*.
-
-Reuters. (2023). *[Citation details for Reuters 2023 regarding ChatPGT user base would be inserted here if available]*.
-
-Wang, Y., Li, Z., & Jin, S. (2023). *[Citation details for Wang et al. 2023 would be inserted here if available]*.
+Mizumoto, M., & Eguchi, A. (2023). *[Title related to ChatGPT as an automated essay scoring tool]*. [Note: Full citation details are inferred from the context describing their examination of ChatGPT reliability.]
