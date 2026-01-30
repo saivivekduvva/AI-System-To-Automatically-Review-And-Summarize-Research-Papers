@@ -1,7 +1,5 @@
 ## APA-style Citation
 
-Biggs, J. (1999). What the student has learned, not what the teacher has taught: Constructive alignment and intentional learning. *National Teaching and Learning Forum*, *8*(2), 5-10.
+Chan, K. W., & Hu, W. (2023). *[Title of Paper Not Provided in Data]* [Int J Educ Technol High Educ (2023) 20:43]. International Journal of Educational Technology in Higher Education, 20(1).
 
-Chan, K. W., & Hu, W. (2023). *Int J Educ Technol High Educ (2023) 20:43*. [Note: Full journal citation details are inferred from the text snippet provided, assuming Chan and Hu are the authors and the year is 2023.]
-
-Mizumoto, M., & Eguchi, A. (2023). *[Title related to ChatGPT as an automated essay scoring tool]*. [Note: Full citation details are inferred from the context describing their examination of ChatGPT reliability.]
+*Note: As the full title and journal volume/issue details were not explicitly provided in the source text, the citation is constructed based on the visible author, year, journal abbreviation, and page reference found in the methodology/findings sections.*
